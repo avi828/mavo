@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>התנ"ך: שמות וספרים</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-image: url('background.png');
+            background-size: cover;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        #game-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            max-width: 800px;
+        }
+        .card {
+            width: 150px;
+            height: 100px;
+            border: 2px solid #333;
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        #start-button, #next-level-button {
+            font-size: 1.2em;
+            padding: 10px 20px;
+            margin: 20px 0;
+            cursor: pointer;
+        }
+        #timer, #score {
+            font-size: 1.2em;
+            margin: 10px 0;
+        }
+        #victory {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+        }
+        #victory img {
+            width: 200px;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>התנ"ך: שמות וספרים</h1>
+    <div id="player-info">
+        <label for="player-name">שם התלמיד: </label>
+        <input type="text" id="player-name">
+    </div>
+    <button id="start-button">התחל משחק</button>
+    <div id="timer">זמן: 0</div>
+    <div id="score">נקודות: 0</div>
+    <div id="instructions"></div>
+    <div id="game-container"></div>
+    <button id="next-level-button" style="display: none;">עבור לשלב הבא</button>
+    <div id="victory" style="display: none;">
+        <img src="victory.png" alt="גביע">
+        <p>כל הכבוד! צברת <span id="final-score"></span> נקודות</p>
+    </div>
+    <audio id="background-music" loop>
+        <source src="sound.mp3" type="audio/mpeg">
+    </audio>
+
+    <script>
+        const conceptPairs = [
+            { concept: "תנ\"ך", explanation: "תורה, נביאים, כתובים" },
+            { concept: "מקרא", explanation: "קוראים בו בשבתות ובחגים" },
+            { concept: "ספר הספרים", explanation: "החשוב והנעלה שבספרים" },
+            { concept: "כתבי הקודש", explanation: "מפאת קדושתו" },
+            { concept: "כ\"ד הספרים", explanation: "קובץ שמונה 24 ספרים" },
+            { concept: "חומש", explanation: "חמישה חומשי תורה" },
+            { concept: "פרשת השבוע", explanation: "קריאה שבועית מהתורה" },
+            { concept: "הפטרה", explanation: "קריאה מנביאים אחרי פרשת השבוע" },
+            { concept: "תרי עשר", explanation: "שנים עשר ספרי נביאים קטנים" },
+            { concept: "ספרי אמ\"ת", explanation: "איוב, משלי, תהילים" },
+            { concept: "חמש המגילות", explanation: "נקראות במועדים מיוחדים" },
+            { concept: "ספרים חיצוניים", explanation: "ספרים שלא נכנסו לתנ\"ך" },
+            { concept: "תורה", explanation: "5 ספרים ראשונים בתנ\"ך" }
+        ];
+
+        let currentLevel = 0;
+        let score = 0;
+        let timer = 0;
+        let timerInterval;
+        let selectedCards = [];
+
+        const gameContainer = document.getElementById('game-container');
+        const startButton = document.getElementById('start-button');
+        const nextLevelButton = document.getElementById('next-level-button');
+        const timerDisplay = document.getElementById('timer');
+        const scoreDisplay = document.getElementById('score');
+        const instructionsDisplay = document.getElementById('instructions');
+        const victoryDisplay = document.getElementById('victory');
+        const playerNameInput = document.getElementById('player-name');
+        const backgroundMusic = document.getElementById('background-music');
+
+        startButton.addEventListener('click', startGame);
+        nextLevelButton.addEventListener('click', nextLevel);
+
+        function startGame() {
+            if (playerNameInput.value.trim() === '') {
+                alert('נא להזין את שמך לפני תחילת המשחק');
+                return;
+            }
+            backgroundMusic.play();
+            startButton.style.display = 'none';
+            playerNameInput.disabled = true;
+            nextLevel();
+            startTimer();
+        }
+
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                timer++;
+                timerDisplay.textContent = `זמן: ${timer}`;
+            }, 1000);
+        }
+
+        function nextLevel() {
+            currentLevel++;
+            selectedCards = [];
+            gameContainer.innerHTML = '';
+            nextLevelButton.style.display = 'none';
+
+            let pairs;
+            if (currentLevel === 1) {
+                pairs = conceptPairs.slice(0, 5);
+                instructionsDisplay.textContent = 'התאם את זוגות המושג והפירוש';
+            } else if (currentLevel === 2) {
+                pairs = conceptPairs.slice(0, 10);
+                instructionsDisplay.textContent = 'התאם את זוגות המושג והפירוש';
+            } else if (currentLevel === 3) {
+                pairs = conceptPairs;
+                instructionsDisplay.textContent = 'מצא את צמד הפירוש והמושג';
+            } else {
+                endGame();
+                return;
+            }
+
+            const cards = pairs.flatMap(pair => [
+                { text: pair.concept, match: pair.explanation },
+                { text: pair.explanation, match: pair.concept }
+            ]);
+
+            shuffleArray(cards);
+
+            cards.forEach((card, index) => {
+                const cardElement = document.createElement('div');
+                cardElement.className = 'card';
+                cardElement.textContent = card.text;
+                cardElement.style.backgroundColor = getRandomColor();
+                cardElement.addEventListener('click', () => selectCard(cardElement, card, index));
+                gameContainer.appendChild(cardElement);
+            });
+        }
+
+        function selectCard(cardElement, card, index) {
+            if (selectedCards.length < 2 && !selectedCards.includes(index)) {
+                selectedCards.push(index);
+                cardElement.style.backgroundColor = '#ddd';
+
+                if (selectedCards.length === 2) {
+                    const [firstIndex, secondIndex] = selectedCards;
+                    const firstCard = gameContainer.children[firstIndex];
+                    const secondCard = gameContainer.children[secondIndex];
+
+                    if (firstCard.textContent === card.match || secondCard.textContent === card.match) {
+                        setTimeout(() => {
+                            firstCard.style.visibility = 'hidden';
+                            secondCard.style.visibility = 'hidden';
+                            score++;
+                            scoreDisplay.textContent = `נקודות: ${score}`;
+                            selectedCards = [];
+                            checkLevelCompletion();
+                        }, 500);
+                    } else {
+                        setTimeout(() => {
+                            firstCard.style.backgroundColor = getRandomColor();
+                            secondCard.style.backgroundColor = getRandomColor();
+                            selectedCards = [];
+                        }, 500);
+                    }
+                }
+            }
+        }
+
+        function checkLevelCompletion() {
+            const visibleCards = Array.from(gameContainer.children).filter(card => card.style.visibility !== 'hidden');
+            if (visibleCards.length === 0) {
+                nextLevelButton.style.display = 'block';
+            }
+        }
+
+        function endGame() {
+            clearInterval(timerInterval);
+            gameContainer.innerHTML = '';
+            instructionsDisplay.textContent = '';
+            victoryDisplay.style.display = 'flex';
+            document.getElementById('final-score').textContent = score;
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        function getRandomColor() {
+            const colors = ['#FFD700', '#00CED1', '#FF69B4', '#32CD32', '#FF1493'];
+            return colors[Math.floor(Math.random() * colors.length)];
+        }
+    </script>
+</body>
+</html>
